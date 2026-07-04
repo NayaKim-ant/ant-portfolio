@@ -1,0 +1,1038 @@
+openapi: 3.1.0
+info:
+  title: Ant Portfolio API
+  version: 0.1.0
+  description: |
+    API contract for Ant Portfolio commission types, magic-link authentication,
+    customer accounts, commissions, messages, site settings, and admin tools.
+
+    Operations marked `implemented` exist in the current application. Operations
+    marked `planned` describe the intended backend contract.
+servers:
+  - url: http://localhost:3000
+    description: Local development
+  - url: https://example.com
+    description: Production placeholder
+tags:
+  - name: Commission Types
+    description: Public commission products and their details.
+  - name: Authentication
+    description: Magic-link login, verification, and logout.
+  - name: Account
+    description: Authenticated customer profile.
+  - name: Commissions
+    description: Customer commission orders and history.
+  - name: Messages
+    description: Customer and admin commission conversations.
+  - name: Admin
+    description: Protected commission, product, and site-management operations.
+  - name: Webhooks
+    description: Requests from external services such as payment providers.
+
+paths:
+  /api/commission-types:
+    get:
+      tags: [Commission Types]
+      operationId: listCommissionTypes
+      summary: List active commission types
+      x-implementation-status: implemented
+      responses:
+        "200":
+          description: Commission types returned successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/CommissionType"
+
+  /api/commission-types/{slug}:
+    parameters:
+      - $ref: "#/components/parameters/CommissionTypeSlug"
+    get:
+      tags: [Commission Types]
+      operationId: getCommissionType
+      summary: Get one commission type
+      x-implementation-status: implemented
+      responses:
+        "200":
+          description: Commission type returned successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommissionTypeResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/auth/magic-link:
+    post:
+      tags: [Authentication]
+      operationId: requestMagicLink
+      summary: Send a magic-link login email
+      x-implementation-status: planned
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MagicLinkRequest"
+      responses:
+        "202":
+          description: The login email was accepted for delivery.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [message]
+                properties:
+                  message:
+                    type: string
+                    examples: [Authentication email sent]
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+  /api/auth/verify:
+    post:
+      tags: [Authentication]
+      operationId: verifyMagicLink
+      summary: Verify a magic-link token and create a session
+      x-implementation-status: planned
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token]
+              properties:
+                token:
+                  type: string
+                  minLength: 1
+      responses:
+        "200":
+          description: Token verified. A secure session cookie is set.
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+              description: Secure, HTTP-only session cookie.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /api/auth/logout:
+    post:
+      tags: [Authentication]
+      operationId: logout
+      summary: Destroy the current session
+      x-implementation-status: planned
+      security:
+        - cookieAuth: []
+      responses:
+        "204":
+          description: Logged out successfully.
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /api/account:
+    get:
+      tags: [Account]
+      operationId: getAccount
+      summary: Get the authenticated customer account
+      x-implementation-status: planned
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Customer account returned successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    patch:
+      tags: [Account]
+      operationId: updateAccount
+      summary: Update the authenticated customer's name or email
+      x-implementation-status: planned
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AccountUpdate"
+      responses:
+        "200":
+          description: Customer account updated successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /api/commissions:
+    get:
+      tags: [Commissions]
+      operationId: listMyCommissions
+      summary: List the authenticated customer's commissions
+      x-implementation-status: planned
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            $ref: "#/components/schemas/CommissionStatus"
+      responses:
+        "200":
+          description: Commissions returned successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Commission"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    post:
+      tags: [Commissions]
+      operationId: createCommission
+      summary: Submit a commission order or inquiry
+      x-implementation-status: planned
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CommissionCreate"
+      responses:
+        "201":
+          description: Commission request created successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommissionResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "409":
+          description: Commissions are closed or the selected type is unavailable.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/commissions/{id}:
+    parameters:
+      - $ref: "#/components/parameters/CommissionId"
+    get:
+      tags: [Commissions]
+      operationId: getMyCommission
+      summary: Get one commission owned by the authenticated customer
+      x-implementation-status: planned
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Commission returned successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommissionResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/commissions/{id}/messages:
+    parameters:
+      - $ref: "#/components/parameters/CommissionId"
+    get:
+      tags: [Messages]
+      operationId: listCommissionMessages
+      summary: List messages for a customer-owned commission
+      x-implementation-status: planned
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Messages returned in chronological order.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Message"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    post:
+      tags: [Messages]
+      operationId: createCommissionMessage
+      summary: Send a message about a customer-owned commission
+      x-implementation-status: planned
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [body]
+              properties:
+                body:
+                  type: string
+                  minLength: 1
+                  maxLength: 5000
+      responses:
+        "201":
+          description: Message sent successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    $ref: "#/components/schemas/Message"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /api/admin/settings:
+    get:
+      tags: [Admin]
+      operationId: getAdminSettings
+      summary: Get editable site settings
+      x-implementation-status: planned
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Settings returned successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SiteSettingsResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    patch:
+      tags: [Admin]
+      operationId: updateAdminSettings
+      summary: Update commission availability and contact settings
+      x-implementation-status: planned
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SiteSettingsUpdate"
+      responses:
+        "200":
+          description: Settings updated successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SiteSettingsResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /api/admin/commission-types:
+    post:
+      tags: [Admin]
+      operationId: createCommissionType
+      summary: Create a commission type
+      x-implementation-status: planned
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CommissionTypeWrite"
+      responses:
+        "201":
+          description: Commission type created successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommissionTypeResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /api/admin/commission-types/{id}:
+    parameters:
+      - $ref: "#/components/parameters/CommissionTypeId"
+    patch:
+      tags: [Admin]
+      operationId: updateCommissionType
+      summary: Update, activate, hide, or reorder a commission type
+      x-implementation-status: planned
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CommissionTypeWrite"
+      responses:
+        "200":
+          description: Commission type updated successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommissionTypeResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      tags: [Admin]
+      operationId: deleteCommissionType
+      summary: Delete a commission type
+      x-implementation-status: planned
+      security:
+        - cookieAuth: []
+      responses:
+        "204":
+          description: Commission type deleted successfully.
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/admin/commissions:
+    get:
+      tags: [Admin]
+      operationId: listAdminCommissions
+      summary: List commissions across all customers
+      x-implementation-status: planned
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            $ref: "#/components/schemas/CommissionStatus"
+      responses:
+        "200":
+          description: Commissions returned successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Commission"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /api/admin/commissions/{id}:
+    parameters:
+      - $ref: "#/components/parameters/CommissionId"
+    patch:
+      tags: [Admin]
+      operationId: updateAdminCommission
+      summary: Update status, quote, invoice, or commission metadata
+      x-implementation-status: planned
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CommissionAdminUpdate"
+      responses:
+        "200":
+          description: Commission updated successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommissionResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/webhooks/stripe:
+    post:
+      tags: [Webhooks]
+      operationId: processStripeWebhook
+      summary: Process Stripe invoice and payment events
+      x-implementation-status: planned
+      parameters:
+        - name: stripe-signature
+          in: header
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        "200":
+          description: Event processed or safely ignored.
+        "400":
+          description: Invalid payload or signature.
+
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: ant_session
+
+  parameters:
+    CommissionTypeSlug:
+      name: slug
+      in: path
+      required: true
+      schema:
+        type: string
+        examples: [illustration]
+    CommissionTypeId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    CommissionId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+  responses:
+    BadRequest:
+      description: Request validation failed.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    Unauthorized:
+      description: Authentication is required or the session has expired.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    Forbidden:
+      description: The authenticated user cannot access this resource.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    NotFound:
+      description: The requested resource was not found.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    Conflict:
+      description: The request conflicts with an existing resource.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    RateLimited:
+      description: Too many requests were sent in a short period.
+      headers:
+        Retry-After:
+          schema:
+            type: integer
+          description: Seconds until another request should be attempted.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+
+  schemas:
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+        code:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
+
+    User:
+      type: object
+      required: [id, name, email, role, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        email:
+          type: string
+          format: email
+        role:
+          type: string
+          enum: [customer, admin]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    UserResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: "#/components/schemas/User"
+
+    MagicLinkRequest:
+      type: object
+      required: [name, email]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        email:
+          type: string
+          format: email
+
+    AccountUpdate:
+      type: object
+      minProperties: 1
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        email:
+          type: string
+          format: email
+
+    CommissionType:
+      type: object
+      required:
+        - slug
+        - title
+        - shortDescription
+        - description
+        - startingPrice
+        - priceOptions
+        - turnaround
+        - deliveryOptions
+        - revisions
+        - additionalCharges
+        - deliverables
+        - notes
+        - samples
+        - custom
+      properties:
+        id:
+          type: string
+          format: uuid
+        slug:
+          type: string
+          pattern: "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+        title:
+          type: string
+        shortDescription:
+          type: string
+        description:
+          type: string
+        startingPrice:
+          type: string
+          description: Display price. A numeric amount can replace this when payments are implemented.
+        priceOptions:
+          type: array
+          items:
+            type: string
+        turnaround:
+          type: string
+        deliveryOptions:
+          type: array
+          items:
+            type: string
+        revisions:
+          type: string
+        additionalCharges:
+          type: array
+          items:
+            type: string
+        deliverables:
+          type: array
+          items:
+            type: string
+        notes:
+          type: array
+          items:
+            type: string
+        samples:
+          type: array
+          items:
+            type: string
+          description: Placeholder labels now; replace with stored image URLs later.
+        custom:
+          type: boolean
+        isActive:
+          type: boolean
+          default: true
+        displayOrder:
+          type: integer
+          minimum: 0
+        imageUrls:
+          type: array
+          items:
+            type: string
+            format: uri
+
+    CommissionTypeWrite:
+      type: object
+      required: [slug, title, shortDescription, description]
+      properties:
+        slug:
+          type: string
+          pattern: "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+        title:
+          type: string
+        shortDescription:
+          type: string
+        description:
+          type: string
+        startingPrice:
+          type: string
+        priceOptions:
+          type: array
+          items:
+            type: string
+        turnaround:
+          type: string
+        deliveryOptions:
+          type: array
+          items:
+            type: string
+        revisions:
+          type: string
+        additionalCharges:
+          type: array
+          items:
+            type: string
+        deliverables:
+          type: array
+          items:
+            type: string
+        notes:
+          type: array
+          items:
+            type: string
+        samples:
+          type: array
+          items:
+            type: string
+        custom:
+          type: boolean
+        isActive:
+          type: boolean
+        displayOrder:
+          type: integer
+          minimum: 0
+        imageUrls:
+          type: array
+          items:
+            type: string
+            format: uri
+
+    CommissionTypeResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: "#/components/schemas/CommissionType"
+
+    CommissionStatus:
+      type: string
+      enum:
+        - inquiry
+        - quote_pending
+        - awaiting_payment
+        - paid
+        - sketch
+        - in_progress
+        - review
+        - delivered
+        - cancelled
+
+    InvoiceStatus:
+      type: string
+      enum: [not_created, pending, paid, void, refunded]
+
+    Commission:
+      type: object
+      required:
+        - id
+        - customerId
+        - title
+        - description
+        - status
+        - invoiceStatus
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        displayNumber:
+          type: integer
+          minimum: 1
+          examples: [3]
+        customerId:
+          type: string
+          format: uuid
+        commissionTypeId:
+          oneOf:
+            - type: string
+              format: uuid
+            - type: "null"
+        title:
+          type: string
+        description:
+          type: string
+        intendedUse:
+          type: string
+        deadline:
+          oneOf:
+            - type: string
+              format: date
+            - type: "null"
+        status:
+          $ref: "#/components/schemas/CommissionStatus"
+        quoteAmount:
+          oneOf:
+            - type: integer
+              minimum: 0
+              description: Amount in the smallest currency unit.
+            - type: "null"
+        currency:
+          type: string
+          minLength: 3
+          maxLength: 3
+          default: USD
+        invoiceStatus:
+          $ref: "#/components/schemas/InvoiceStatus"
+        invoiceUrl:
+          oneOf:
+            - type: string
+              format: uri
+            - type: "null"
+        referenceImageUrls:
+          type: array
+          items:
+            type: string
+            format: uri
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CommissionCreate:
+      type: object
+      required: [title, description]
+      properties:
+        commissionTypeId:
+          type: string
+          format: uuid
+        commissionTypeSlug:
+          type: string
+        title:
+          type: string
+          minLength: 1
+          maxLength: 150
+        description:
+          type: string
+          minLength: 1
+          maxLength: 10000
+        intendedUse:
+          type: string
+          maxLength: 1000
+        deadline:
+          type: string
+          format: date
+        referenceImageUrls:
+          type: array
+          maxItems: 20
+          items:
+            type: string
+            format: uri
+
+    CommissionAdminUpdate:
+      type: object
+      minProperties: 1
+      properties:
+        title:
+          type: string
+        status:
+          $ref: "#/components/schemas/CommissionStatus"
+        quoteAmount:
+          type: integer
+          minimum: 0
+        currency:
+          type: string
+          minLength: 3
+          maxLength: 3
+        invoiceStatus:
+          $ref: "#/components/schemas/InvoiceStatus"
+        invoiceUrl:
+          type: string
+          format: uri
+
+    CommissionResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: "#/components/schemas/Commission"
+
+    Message:
+      type: object
+      required: [id, commissionId, senderId, senderRole, body, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        commissionId:
+          type: string
+          format: uuid
+        senderId:
+          type: string
+          format: uuid
+        senderRole:
+          type: string
+          enum: [customer, admin]
+        body:
+          type: string
+          minLength: 1
+          maxLength: 5000
+        readAt:
+          oneOf:
+            - type: string
+              format: date-time
+            - type: "null"
+        createdAt:
+          type: string
+          format: date-time
+
+    SiteSettings:
+      type: object
+      required: [commissionsOpen, contactEmail, availableHours]
+      properties:
+        commissionsOpen:
+          type: boolean
+        contactEmail:
+          type: string
+          format: email
+        availableHours:
+          type: string
+
+    SiteSettingsUpdate:
+      type: object
+      minProperties: 1
+      properties:
+        commissionsOpen:
+          type: boolean
+        contactEmail:
+          type: string
+          format: email
+        availableHours:
+          type: string
+
+    SiteSettingsResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: "#/components/schemas/SiteSettings"

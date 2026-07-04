@@ -1,8 +1,9 @@
 "use client";
 
-import { FormEvent, useState } from "react";
-import Link from "next/link";
-import { commissionTypes } from "../api/commission-types/data";
+import { FormEvent, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { BackButton } from "../components/BackButton";
+import { CommissionTypeCards } from "../components/CommissionTypeCards";
 import { useAntPortfolioStore } from "../store";
 import type { CommissionModal } from "../store";
 
@@ -62,6 +63,7 @@ const initialMessages = [
 ];
 
 export function CommissionsExperience() {
+  const router = useRouter();
   const {
     commissionOpen,
     commissionView,
@@ -82,6 +84,10 @@ export function CommissionsExperience() {
   const [messages, setMessages] = useState(initialMessages);
   const [messageDraft, setMessageDraft] = useState("");
 
+  useEffect(() => {
+    setCommissionView("commissions");
+  }, [setCommissionView]);
+
   const selectedCommission =
     commissions.find((commission) => commission.id === selectedCommissionId) ??
     commissions[0];
@@ -97,12 +103,18 @@ export function CommissionsExperience() {
       return;
     }
 
-    setCommissionView("account");
+    router.push(action === "inquiry" ? "/commissions/ask" : "/commissions/order");
   };
 
   const finishVerification = () => {
     completeMagicLinkLogin();
-    setCommissionView(pendingAction === "account" ? "account" : "commissions");
+    if (pendingAction === "account") {
+      setCommissionView("account");
+    } else {
+      router.push(
+        pendingAction === "inquiry" ? "/commissions/ask" : "/commissions/order",
+      );
+    }
     setPendingAction(null);
   };
 
@@ -135,8 +147,8 @@ export function CommissionsExperience() {
           onBack={() => setCommissionView("commissions")}
           onUpdate={() => openCommissionModal("updateInfo")}
           onSelectCommission={selectCommission}
-          onInquiry={() => setCommissionView("commissions")}
-          onOrder={() => setCommissionView("commissions")}
+          onInquiry={() => router.push("/commissions/ask")}
+          onOrder={() => router.push("/commissions/order")}
           onLogout={() => openCommissionModal("logout")}
         />
       )}
@@ -186,25 +198,34 @@ function CommissionsLanding({
   return (
     <>
       <main className="commissions-page">
-        <section className="commission-account-banner">
-          <div>
+        <section
+          className={`commission-account-banner ${loggedIn ? "logged-in" : ""}`}
+        >
+          <div className="commission-account-copy">
             <h1>
               <span aria-hidden="true">{loggedIn ? "○" : "!"}</span>{" "}
               {loggedIn ? `Welcome, ${userName}!` : "Not logged in"}
             </h1>
+            {loggedIn && (
+              <button
+                className="pencil-button my-page-button"
+                type="button"
+                onClick={onMyPage}
+              >
+                My page
+              </button>
+            )}
             <p>
               {loggedIn
                 ? "Your commission space is ready."
                 : "Log in with only your name and email to order or ask a question."}
             </p>
           </div>
-          <button
-            className="pencil-button"
-            type="button"
-            onClick={loggedIn ? onMyPage : onLogin}
-          >
-            {loggedIn ? "My page" : "Click here to log in"}
-          </button>
+          {!loggedIn && (
+            <button className="pencil-button" type="button" onClick={onLogin}>
+              Click here to log in
+            </button>
+          )}
         </section>
 
         <section className="commission-hero">
@@ -232,25 +253,7 @@ function CommissionsLanding({
 
         <section className="commission-section">
           <h2 className="leaf-heading">Types available</h2>
-          <div className="commission-type-list">
-            {commissionTypes.map((type, index) => (
-              <article className="commission-type-card" key={type.title}>
-                <div className="commission-type-image">
-                  {index === commissionTypes.length - 1 ? "your idea" : "sample"}
-                </div>
-                <div>
-                  <h3>{type.title}</h3>
-                  <p>{type.shortDescription}</p>
-                  <Link
-                    className="text-action"
-                    href={`/commissions/${type.slug}`}
-                  >
-                    View more or buy this type
-                  </Link>
-                </div>
-              </article>
-            ))}
-          </div>
+          <CommissionTypeCards />
         </section>
 
         <section className="commission-section choice-help">
@@ -320,9 +323,7 @@ function AccountPage({
       <main className="commission-account-page">
         <div className="commission-page-heading">
           <h1 className="double-leaf-title">{name}&apos;s page</h1>
-          <button className="text-action" type="button" onClick={onBack}>
-            Back
-          </button>
+          <BackButton onClick={onBack} />
         </div>
 
         <section className="account-thread-section">
@@ -433,9 +434,7 @@ function CommissionDetail({
       <main className="commission-detail-page">
         <div className="commission-page-heading">
           <p className="page-eyebrow">Commission detail</p>
-          <button className="text-action" type="button" onClick={onBack}>
-            Back
-          </button>
+          <BackButton onClick={onBack} />
         </div>
 
         <article className="commission-postcard">
@@ -512,15 +511,35 @@ function CommissionModalLayer({
   onUpdate: (user: { name: string; email: string }) => void;
   onLogout: () => void;
 }) {
+  useEffect(() => {
+    if (modal !== "login") return;
+
+    const dismissOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+
+    window.addEventListener("keydown", dismissOnEscape);
+    return () => window.removeEventListener("keydown", dismissOnEscape);
+  }, [modal, onClose]);
+
   if (!modal) return null;
 
   return (
-    <div className="commission-modal-backdrop" role="presentation">
+    <div
+      className="commission-modal-backdrop"
+      role="presentation"
+      onMouseDown={(event) => {
+        if (modal === "login" && event.target === event.currentTarget) {
+          onClose();
+        }
+      }}
+    >
       <div
         className="commission-modal"
         role="dialog"
         aria-modal="true"
         aria-labelledby="commission-modal-title"
+        onMouseDown={(event) => event.stopPropagation()}
       >
         {modal === "login" && (
           <UserForm

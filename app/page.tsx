@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArtCarousel } from "./components/ArtCarousel";
+import { CommissionSamplesCarousel } from "./components/CommissionSamplesCarousel";
 
 export default function Home() {
   return (
@@ -22,7 +22,7 @@ export default function Home() {
 
           <section className="do-section" aria-labelledby="what-ant-does">
             <h2 id="what-ant-does" className="leaf-heading centered-heading">
-              What does ant do?
+              What does Ant do?
             </h2>
 
             <article className="insta-row">
@@ -46,10 +46,9 @@ export default function Home() {
 
               <div className="text-block">
                 <h3 className="leaf-heading">Instagram account</h3>
-                <p className="pencil-lines">
-                  Lorem ipsum dolor sit amet, consectetur adipiscing elit.
-                  Maecenas mattis enim nec sem malesuada, at gravida justo
-                  placerat.
+                <p className="home-placeholder-copy">
+                  [Instagram account description goes here. Introduce what you
+                  share and invite visitors to follow the account.]
                 </p>
               </div>
             </article>
@@ -60,9 +59,9 @@ export default function Home() {
 
             <article className="fan-row">
               <div className="text-block short-copy">
-                <p className="pencil-lines">
-                  Lorem ipsum dolor sit amet, consectetur adipiscing elit.
-                  Aliquam tempor arcu vel ligula finibus.
+                <p className="home-placeholder-copy">
+                  [Describe moments, stories, or interactions shared with the
+                  Aphids and the Ant community.]
                 </p>
               </div>
               <div className="fan-photos">
@@ -77,13 +76,21 @@ export default function Home() {
               Ant&apos;s artistic world
             </h2>
 
-            <ArtCarousel />
+            <CommissionSamplesCarousel
+              title="Ant's artistic world"
+              samples={[
+                "artwork placeholder 1",
+                "artwork placeholder 2",
+                "artwork placeholder 3",
+                "artwork placeholder 4",
+              ]}
+              destinationHref="/portfolio"
+            />
 
-            <p className="pencil-lines wide-lines">
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer
-              posuere felis sit amet sem fermentum, ac vulputate erat aliquet.
-              Praesent luctus magna vel nibh aliquet, sed posuere neque
-              tincidunt.
+            <p className="home-placeholder-copy home-placeholder-wide">
+              [Describe Ant&apos;s artistic world here. Add your skills,
+              preferred styles, media, subjects, and the ideas behind your
+              artwork.]
             </p>
           </section>
 
@@ -98,9 +105,9 @@ export default function Home() {
               <h2 id="home-commissions" className="leaf-heading">
                 Commissions
               </h2>
-              <p className="pencil-lines">
-                Lorem ipsum dolor sit amet, consectetur adipiscing elit.
-                Pellentesque id justo eu leo cursus fringilla.
+              <p className="home-placeholder-copy">
+                [Introduce your commissions here. Mention what visitors can
+                request and any important availability information.]
               </p>
               <Link className="commission-button" href="/commissions">
                 Click here to commission!

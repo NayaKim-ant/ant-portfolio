@@ -5,6 +5,8 @@ import {
   commissionTypes,
   getCommissionType,
 } from "../../api/commission-types/data";
+import { BackButton } from "../../components/BackButton";
+import { CommissionSamplesCarousel } from "../../components/CommissionSamplesCarousel";
 
 type CommissionTypePageProps = {
   params: Promise<{ slug: string }>;
@@ -38,71 +40,73 @@ export default async function CommissionTypePage({
 
   return (
     <div className="site-shell paper-page commission-type-shell">
-      <main className="commission-type-page">
-        <div className="commission-detail-nav">
-          <Link className="text-action" href="/commissions">
-            &lt; Back to commissions
-          </Link>
-        </div>
-
-        <header className="commission-type-heading">
-          <p className="page-eyebrow">Commission type</p>
-          <h1 className="double-leaf-title">{commissionType.title}</h1>
-          <p>{commissionType.shortDescription}</p>
+      <main className="type-details-page">
+        <header className="type-details-heading">
+          <h1>{commissionType.title} type</h1>
+          <BackButton href="/commissions" />
         </header>
 
-        <section className="commission-type-showcase">
-          <div className="commission-type-main-image">main sample image</div>
-          <div className="commission-type-summary">
-            <p>{commissionType.description}</p>
-            <dl>
-              <div>
-                <dt>Starting price</dt>
-                <dd>{commissionType.startingPrice}</dd>
-              </div>
-              <div>
-                <dt>Turnaround</dt>
-                <dd>{commissionType.turnaround}</dd>
-              </div>
-              <div>
-                <dt>Revisions</dt>
-                <dd>{commissionType.revisions}</dd>
-              </div>
-            </dl>
-            <Link className="pencil-button" href="/commissions">
-              {commissionType.custom
-                ? "Ask about this type"
-                : "Order this commission"}
-            </Link>
-          </div>
+        <CommissionSamplesCarousel
+          title={commissionType.title}
+          samples={commissionType.samples}
+        />
+
+        <Link
+          className="type-order-button"
+          href={`/commissions/${commissionType.slug}/apply`}
+        >
+          Order
+        </Link>
+
+        <p className="type-short-description">
+          {commissionType.shortDescription}
+        </p>
+
+        <section className="type-info-section">
+          <h2 className="leaf-heading">Price</h2>
+          <ul>
+            {commissionType.priceOptions.map((option) => (
+              <li key={option}>{option}</li>
+            ))}
+          </ul>
         </section>
 
-        <section className="commission-type-section">
-          <h2 className="leaf-heading">More examples</h2>
-          <div className="commission-example-grid">
-            <div>sample 01</div>
-            <div>sample 02</div>
-            <div>sample 03</div>
-          </div>
+        <section className="type-info-section">
+          <h2 className="leaf-heading">Delivery time</h2>
+          <ul>
+            {commissionType.deliveryOptions.map((option) => (
+              <li key={option}>{option}</li>
+            ))}
+          </ul>
         </section>
 
-        <section className="commission-type-section commission-type-info-grid">
-          <article>
-            <h2 className="leaf-heading">What you receive</h2>
-            <ul>
-              {commissionType.deliverables.map((deliverable) => (
-                <li key={deliverable}>{deliverable}</li>
-              ))}
-            </ul>
-          </article>
-          <article>
-            <h2 className="leaf-heading">Before ordering</h2>
-            <ul>
-              {commissionType.notes.map((note) => (
-                <li key={note}>{note}</li>
-              ))}
-            </ul>
-          </article>
+        <section className="type-info-section">
+          <h2 className="leaf-heading">Additional charge</h2>
+          <ul>
+            {commissionType.additionalCharges.map((charge) => (
+              <li key={charge}>{charge}</li>
+            ))}
+          </ul>
+        </section>
+
+        <section className="type-info-section">
+          <h2 className="leaf-heading">Description</h2>
+          <p>{commissionType.description}</p>
+          <p>
+            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer
+            posuere, sem at tincidunt feugiat, neque erat tristique libero, at
+            viverra massa mauris vitae justo.
+          </p>
+        </section>
+
+        <section className="type-info-section">
+          <h2 className="leaf-heading">Notes &amp; disclaimers</h2>
+          <ul>
+            {commissionType.notes.map((note) => (
+              <li key={note}>{note}</li>
+            ))}
+          </ul>
+          <p>Revisions: {commissionType.revisions}</p>
         </section>
       </main>
 

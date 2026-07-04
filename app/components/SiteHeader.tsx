@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { CommissionsNavLink } from "./CommissionsNavLink";
 
 export function SiteHeader() {
   return (
@@ -26,9 +27,7 @@ export function SiteHeader() {
             </div>
           </div>
 
-          <Link href="/commissions" className="nav-link">
-            Commissions
-          </Link>
+          <CommissionsNavLink />
         </nav>
       </div>
     </header>
