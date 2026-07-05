@@ -1,8 +1,13 @@
 import Link from "next/link";
+import { mockDb } from "../../api/_data/mock-database";
 import { BackButton } from "../../components/BackButton";
 import { CommissionTypeCards } from "../../components/CommissionTypeCards";
 
 export default function OrderCommissionPage() {
+  const commissionTypes = mockDb.commissionTypes
+    .filter((type) => type.isActive)
+    .sort((a, b) => a.displayOrder - b.displayOrder);
+
   return (
     <div className="site-shell paper-page">
       <main className="order-commission-page">
@@ -16,7 +21,7 @@ export default function OrderCommissionPage() {
 
         <section className="order-types-section">
           <h2 className="leaf-heading">Types available</h2>
-          <CommissionTypeCards />
+          <CommissionTypeCards commissionTypes={commissionTypes} />
         </section>
 
         <section className="order-undecided">

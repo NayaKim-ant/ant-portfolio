@@ -1,7 +1,10 @@
-import { commissionTypes } from "./data";
-
-export const dynamic = "force-static";
+import { mockDb } from "../_data/mock-database";
+import { dataResponse } from "../_lib/http";
 
 export async function GET() {
-  return Response.json({ data: commissionTypes });
+  const types = mockDb.commissionTypes
+    .filter((type) => type.isActive)
+    .sort((a, b) => a.displayOrder - b.displayOrder);
+
+  return dataResponse(types);
 }

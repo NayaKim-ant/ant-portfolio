@@ -1,18 +1,18 @@
-import { getCommissionType } from "../data";
+import { mockDb } from "../../_data/mock-database";
+import { dataResponse, errorResponse } from "../../_lib/http";
 
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ slug: string }> },
 ) {
   const { slug } = await params;
-  const commissionType = getCommissionType(slug);
+  const commissionType = mockDb.commissionTypes.find(
+    (type) => type.slug === slug && type.isActive,
+  );
 
   if (!commissionType) {
-    return Response.json(
-      { error: "Commission type not found" },
-      { status: 404 },
-    );
+    return errorResponse(404, "Commission type not found", "NOT_FOUND");
   }
 
-  return Response.json({ data: commissionType });
+  return dataResponse(commissionType);
 }

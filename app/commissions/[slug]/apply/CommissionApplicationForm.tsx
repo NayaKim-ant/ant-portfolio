@@ -10,6 +10,7 @@ import {
   useState,
 } from "react";
 import { BackButton } from "../../../components/BackButton";
+import type { ApplicationQuestionRecord } from "../../../api/_data/mock-database";
 
 type EditorCommand = "bold" | "italic" | "underline" | "strikeThrough" | "undo" | "redo";
 type FormatCommand = "bold" | "italic" | "underline" | "strikeThrough";
@@ -24,9 +25,11 @@ const formatCommands: FormatCommand[] = [
 export function CommissionApplicationForm({
   typeName,
   typeSlug,
+  questions,
 }: {
   typeName: string;
   typeSlug: string;
+  questions: ApplicationQuestionRecord[];
 }) {
   const editorRef = useRef<HTMLDivElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
@@ -91,29 +94,36 @@ export function CommissionApplicationForm({
         </div>
 
         <form className="commission-application-form" onSubmit={submit}>
-          <fieldset className="application-question">
-            <legend>
-              <span>1.</span> Placeholder question with one choice
-            </legend>
-            <label>
-              <input type="radio" name="placeholder-choice" value="option-a" required />
-              Placeholder option A
-            </label>
-            <label>
-              <input type="radio" name="placeholder-choice" value="option-b" />
-              Placeholder option B
-            </label>
-            <label>
-              <input type="radio" name="placeholder-choice" value="option-c" />
-              Placeholder option C
-            </label>
-          </fieldset>
+          {questions.map((question) => (
+            <fieldset className="application-question" key={question.id}>
+              <legend>
+                <span>{question.number}.</span> {question.label}
+              </legend>
+              {question.helpText && <p>{question.helpText}</p>}
 
-          <fieldset className="application-question">
-            <legend>
-              <span>2.</span> Placeholder question with a custom answer
-            </legend>
-            <div className="rich-editor">
+              {question.inputType === "radio" &&
+                question.options.map((option) => (
+                  <label key={option.id}>
+                    <input
+                      type="radio"
+                      name={question.id}
+                      value={option.value}
+                      required={question.required}
+                    />
+                    {option.label}
+                  </label>
+                ))}
+
+              {question.inputType === "short_text" && (
+                <input name={question.id} required={question.required} />
+              )}
+
+              {question.inputType === "date" && (
+                <input type="date" name={question.id} required={question.required} />
+              )}
+
+              {question.inputType === "rich_text" && (
+                <div className="rich-editor">
               <div className="rich-editor-toolbar" aria-label="Text formatting">
                 <div>
                   <button
@@ -193,22 +203,10 @@ export function CommissionApplicationForm({
                 onChange={insertImage}
                 tabIndex={-1}
               />
-            </div>
-          </fieldset>
-
-          <fieldset className="application-question">
-            <legend>
-              <span>3.</span> Placeholder delivery preference
-            </legend>
-            <label>
-              <input type="radio" name="delivery" value="standard" required />
-              Standard schedule
-            </label>
-            <label>
-              <input type="radio" name="delivery" value="discuss" />
-              Discuss another schedule
-            </label>
-          </fieldset>
+                </div>
+              )}
+            </fieldset>
+          ))}
 
           <button className="application-submit" type="submit">
             Order
@@ -216,8 +214,8 @@ export function CommissionApplicationForm({
 
           {submitted && (
             <p className="application-success" role="status">
-              Application captured as a frontend mock. Database submission will
-              be connected later.
+              Application captured in the current mock UI. The BFF submission
+              endpoint is ready for persistence later.
             </p>
           )}
         </form>

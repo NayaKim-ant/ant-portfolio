@@ -1,7 +1,11 @@
 import Link from "next/link";
-import { commissionTypes } from "../api/commission-types/data";
+import type { CommissionTypeRecord } from "../api/_data/mock-database";
 
-export function CommissionTypeCards() {
+export function CommissionTypeCards({
+  commissionTypes,
+}: {
+  commissionTypes: CommissionTypeRecord[];
+}) {
   return (
     <div className="commission-type-list">
       {commissionTypes.map((type, index) => (

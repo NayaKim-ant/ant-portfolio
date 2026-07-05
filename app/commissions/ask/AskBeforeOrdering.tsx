@@ -4,30 +4,11 @@ import { FormEvent, useState } from "react";
 import Link from "next/link";
 import { BackButton } from "../../components/BackButton";
 
-const faqs = [
-  {
-    question: "What should I prepare before asking?",
-    answer: "A short idea, references, intended use, and preferred deadline.",
-  },
-  {
-    question: "Can I ask for a custom type?",
-    answer: "Yes. Describe the format and I will tell you whether it is possible.",
-  },
-  {
-    question: "How is the final price decided?",
-    answer: "It depends on complexity, usage, timing, and requested additions.",
-  },
-  {
-    question: "Can I ask without ordering afterward?",
-    answer: "Of course. An inquiry does not commit you to an order.",
-  },
-  {
-    question: "When will Ant reply?",
-    answer: "Reply-time and available-hour details will be written here.",
-  },
-];
-
-export function AskBeforeOrdering() {
+export function AskBeforeOrdering({
+  faqs,
+}: {
+  faqs: Array<{ question: string; answer: string }>;
+}) {
   const [messages, setMessages] = useState<string[]>([]);
   const [draft, setDraft] = useState("");
 

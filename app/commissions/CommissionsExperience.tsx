@@ -6,8 +6,23 @@ import { BackButton } from "../components/BackButton";
 import { CommissionTypeCards } from "../components/CommissionTypeCards";
 import { useAntPortfolioStore } from "../store";
 import type { CommissionModal } from "../store";
+import type { CommissionTypeRecord } from "../api/_data/mock-database";
 
 type AuthAction = "inquiry" | "order" | "account";
+export type CommissionViewRecord = {
+  id: string;
+  title: string;
+  status: string;
+  type: string;
+  quote: string;
+  invoice: string;
+  current: boolean;
+};
+
+export type CommissionMessageView = {
+  from: "admin" | "user";
+  text: string;
+};
 
 const processSteps = [
   ["01", "Inquiry", "Share the idea, references, deadline, and intended use."],
@@ -17,55 +32,21 @@ const processSteps = [
   ["05", "Delivery", "Final files are delivered after approval and payment."],
 ];
 
-const commissions = [
-  {
-    id: "003",
-    title: "Illustration",
-    status: "In progress",
-    type: "Illustration",
-    quote: "$000",
-    invoice: "Pending",
-    current: true,
-  },
-  {
-    id: "004",
-    title: "Chibi pair",
-    status: "Paid",
-    type: "Chibi pair",
-    quote: "$000",
-    invoice: "Paid",
-    current: true,
-  },
-  {
-    id: "002",
-    title: "Sketch",
-    status: "Delivered",
-    type: "Sketch",
-    quote: "$000",
-    invoice: "Paid",
-    current: false,
-  },
-  {
-    id: "001",
-    title: "Illustration",
-    status: "Delivered",
-    type: "Illustration",
-    quote: "$000",
-    invoice: "Paid",
-    current: false,
-  },
-];
-
-const initialMessages = [
-  { from: "admin", text: "Hello! I received your references." },
-  { from: "user", text: "Thank you. Let me know if you need anything else." },
-  { from: "admin", text: "I will send the first sketch here soon." },
-];
-
-export function CommissionsExperience() {
+export function CommissionsExperience({
+  commissionTypes,
+  commissions,
+  initialMessages,
+  content,
+  commissionsOpen,
+}: {
+  commissionTypes: CommissionTypeRecord[];
+  commissions: CommissionViewRecord[];
+  initialMessages: CommissionMessageView[];
+  content: { introduction: string; choiceHelp: string; notes: string };
+  commissionsOpen: boolean;
+}) {
   const router = useRouter();
   const {
-    commissionOpen,
     commissionView,
     commissionModal,
     commissionUser,
@@ -132,7 +113,9 @@ export function CommissionsExperience() {
         <CommissionsLanding
           loggedIn={Boolean(commissionUser)}
           userName={commissionUser?.name ?? ""}
-          commissionOpen={commissionOpen}
+          commissionOpen={commissionsOpen}
+          commissionTypes={commissionTypes}
+          content={content}
           onLogin={() => requireLogin("account")}
           onMyPage={() => setCommissionView("account")}
           onInquiry={() => requireLogin("inquiry")}
@@ -150,6 +133,7 @@ export function CommissionsExperience() {
           onInquiry={() => router.push("/commissions/ask")}
           onOrder={() => router.push("/commissions/order")}
           onLogout={() => openCommissionModal("logout")}
+          commissions={commissions}
         />
       )}
 
@@ -186,6 +170,8 @@ function CommissionsLanding({
   onMyPage,
   onInquiry,
   onOrder,
+  commissionTypes,
+  content,
 }: {
   loggedIn: boolean;
   userName: string;
@@ -194,6 +180,8 @@ function CommissionsLanding({
   onMyPage: () => void;
   onInquiry: () => void;
   onOrder: () => void;
+  commissionTypes: CommissionTypeRecord[];
+  content: { introduction: string; choiceHelp: string; notes: string };
 }) {
   return (
     <>
@@ -232,10 +220,7 @@ function CommissionsLanding({
           <h2 className="double-leaf-title">
             Commissions <strong>{commissionOpen ? "OPEN" : "CLOSED"}</strong>
           </h2>
-          <p>
-            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Tell me
-            about the artwork you would like to make together.
-          </p>
+          <p>{content.introduction}</p>
           <div className="commission-actions">
             <button className="outline-pencil-button" type="button" onClick={onInquiry}>
               Ask before ordering
@@ -253,15 +238,12 @@ function CommissionsLanding({
 
         <section className="commission-section">
           <h2 className="leaf-heading">Types available</h2>
-          <CommissionTypeCards />
+          <CommissionTypeCards commissionTypes={commissionTypes} />
         </section>
 
         <section className="commission-section choice-help">
           <h2 className="leaf-heading">Not sure what to choose?</h2>
-          <p>
-            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Explain
-            your idea and I can help find the right type.
-          </p>
+          <p>{content.choiceHelp}</p>
           <button className="outline-pencil-button" type="button" onClick={onInquiry}>
             Ask before ordering
           </button>
@@ -284,11 +266,7 @@ function CommissionsLanding({
 
         <section className="commission-section commission-notes">
           <h2 className="leaf-heading">Notes &amp; disclaimers</h2>
-          <p>
-            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Prices,
-            turnaround, revisions, usage rights, refunds, and final delivery
-            details will be stated here.
-          </p>
+          <p>{content.notes}</p>
         </section>
       </main>
       <footer className="site-footer">© 2026 Ant</footer>
@@ -305,6 +283,7 @@ function AccountPage({
   onInquiry,
   onOrder,
   onLogout,
+  commissions,
 }: {
   name: string;
   email: string;
@@ -314,6 +293,7 @@ function AccountPage({
   onInquiry: () => void;
   onOrder: () => void;
   onLogout: () => void;
+  commissions: CommissionViewRecord[];
 }) {
   const current = commissions.filter((commission) => commission.current);
   const past = commissions.filter((commission) => !commission.current);
@@ -390,7 +370,7 @@ function CommissionList({
   onSelect,
 }: {
   title: string;
-  commissions: typeof commissions;
+  commissions: CommissionViewRecord[];
   onSelect: (id: string) => void;
 }) {
   return (
@@ -422,8 +402,8 @@ function CommissionDetail({
   onSendMessage,
   onBack,
 }: {
-  commission: (typeof commissions)[number];
-  messages: typeof initialMessages;
+  commission: CommissionViewRecord;
+  messages: CommissionMessageView[];
   draft: string;
   onDraftChange: (value: string) => void;
   onSendMessage: (event: FormEvent<HTMLFormElement>) => void;

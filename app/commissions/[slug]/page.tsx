@@ -1,10 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import {
-  commissionTypes,
-  getCommissionType,
-} from "../../api/commission-types/data";
+import { mockDb } from "../../api/_data/mock-database";
 import { BackButton } from "../../components/BackButton";
 import { CommissionSamplesCarousel } from "../../components/CommissionSamplesCarousel";
 
@@ -13,14 +10,14 @@ type CommissionTypePageProps = {
 };
 
 export function generateStaticParams() {
-  return commissionTypes.map(({ slug }) => ({ slug }));
+  return mockDb.commissionTypes.map(({ slug }) => ({ slug }));
 }
 
 export async function generateMetadata({
   params,
 }: CommissionTypePageProps): Promise<Metadata> {
   const { slug } = await params;
-  const commissionType = getCommissionType(slug);
+  const commissionType = mockDb.commissionTypes.find((type) => type.slug === slug);
 
   return {
     title: commissionType
@@ -34,7 +31,9 @@ export default async function CommissionTypePage({
   params,
 }: CommissionTypePageProps) {
   const { slug } = await params;
-  const commissionType = getCommissionType(slug);
+  const commissionType = mockDb.commissionTypes.find(
+    (type) => type.slug === slug && type.isActive,
+  );
 
   if (!commissionType) notFound();
 
@@ -92,11 +91,9 @@ export default async function CommissionTypePage({
         <section className="type-info-section">
           <h2 className="leaf-heading">Description</h2>
           <p>{commissionType.description}</p>
-          <p>
-            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer
-            posuere, sem at tincidunt feugiat, neque erat tristique libero, at
-            viverra massa mauris vitae justo.
-          </p>
+          {commissionType.deliverables.map((deliverable) => (
+            <p key={deliverable}>{deliverable}</p>
+          ))}
         </section>
 
         <section className="type-info-section">

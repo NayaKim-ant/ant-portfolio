@@ -1,8 +1,5 @@
 import { notFound } from "next/navigation";
-import {
-  commissionTypes,
-  getCommissionType,
-} from "../../../api/commission-types/data";
+import { mockDb } from "../../../api/_data/mock-database";
 import { CommissionApplicationForm } from "./CommissionApplicationForm";
 
 type ApplicationPageProps = {
@@ -10,14 +7,16 @@ type ApplicationPageProps = {
 };
 
 export function generateStaticParams() {
-  return commissionTypes.map(({ slug }) => ({ slug }));
+  return mockDb.commissionTypes.map(({ slug }) => ({ slug }));
 }
 
 export default async function CommissionApplicationPage({
   params,
 }: ApplicationPageProps) {
   const { slug } = await params;
-  const commissionType = getCommissionType(slug);
+  const commissionType = mockDb.commissionTypes.find(
+    (type) => type.slug === slug && type.isActive,
+  );
 
   if (!commissionType) notFound();
 
@@ -25,6 +24,7 @@ export default async function CommissionApplicationPage({
     <CommissionApplicationForm
       typeName={commissionType.title}
       typeSlug={commissionType.slug}
+      questions={mockDb.applicationForms[commissionType.slug] ?? []}
     />
   );
 }

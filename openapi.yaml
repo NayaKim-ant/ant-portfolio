@@ -1,10 +1,12 @@
 openapi: 3.1.0
 info:
-  title: Ant Portfolio API
-  version: 0.1.0
+  title: Ant Portfolio BFF API
+  version: 0.2.0
   description: |
-    API contract for Ant Portfolio commission types, magic-link authentication,
-    customer accounts, commissions, messages, site settings, and admin tools.
+    Browser-facing API contract for the Ant Portfolio web application.
+    Responses are shaped around frontend pages and workflows rather than exposing
+    database tables directly. The BFF owns authentication/session translation,
+    authorization, validation, page aggregation, and response formatting.
 
     Operations marked `implemented` exist in the current application. Operations
     marked `planned` describe the intended backend contract.
@@ -14,8 +16,14 @@ servers:
   - url: https://example.com
     description: Production placeholder
 tags:
+  - name: Page Content
+    description: Aggregated content shaped for public website pages.
   - name: Commission Types
     description: Public commission products and their details.
+  - name: Applications
+    description: Dynamic commission forms, answers, and reference uploads.
+  - name: Inquiries
+    description: Pre-order conversations that are not attached to a commission yet.
   - name: Authentication
     description: Magic-link login, verification, and logout.
   - name: Account
@@ -30,6 +38,83 @@ tags:
     description: Requests from external services such as payment providers.
 
 paths:
+  /api/content/home:
+    get:
+      tags: [Page Content]
+      operationId: getHomePageContent
+      summary: Get all content required to render Home
+      x-implementation-status: implemented
+      responses:
+        "200":
+          description: Aggregated Home content returned successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HomeContentResponse"
+
+  /api/content/portfolio:
+    get:
+      tags: [Page Content]
+      operationId: getPortfolioOverviewContent
+      summary: Get Portfolio overview content
+      x-implementation-status: implemented
+      responses:
+        "200":
+          description: Portfolio overview returned successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PortfolioOverviewResponse"
+
+  /api/content/projects:
+    get:
+      tags: [Page Content]
+      operationId: listProjects
+      summary: List portfolio projects
+      x-implementation-status: implemented
+      parameters:
+        - name: category
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [original_characters, fanart]
+      responses:
+        "200":
+          description: Projects returned successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectCollectionResponse"
+
+  /api/content/contact:
+    get:
+      tags: [Page Content]
+      operationId: getContactPageContent
+      summary: Get public contact methods and available hours
+      x-implementation-status: implemented
+      responses:
+        "200":
+          description: Contact content returned successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContactContentResponse"
+
+  /api/site-settings:
+    get:
+      tags: [Page Content]
+      operationId: getPublicSiteSettings
+      summary: Get public site and commission availability settings
+      x-implementation-status: implemented
+      responses:
+        "200":
+          description: Public settings returned successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SiteSettingsResponse"
+
   /api/commission-types:
     get:
       tags: [Commission Types]
@@ -68,12 +153,192 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
 
+  /api/commission-types/{slug}/application-form:
+    parameters:
+      - $ref: "#/components/parameters/CommissionTypeSlug"
+    get:
+      tags: [Applications]
+      operationId: getCommissionApplicationForm
+      summary: Get the dynamic questions configured for a commission type
+      x-implementation-status: implemented
+      responses:
+        "200":
+          description: Application-form definition returned successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApplicationFormDefinitionResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/commission-applications:
+    post:
+      tags: [Applications]
+      operationId: submitCommissionApplication
+      summary: Submit answers for a commission type
+      x-implementation-status: implemented
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CommissionApplicationCreate"
+      responses:
+        "201":
+          description: Application accepted and commission record created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommissionResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /api/uploads/presign:
+    post:
+      tags: [Applications]
+      operationId: createUploadUrl
+      summary: Create a temporary upload URL for editor reference images
+      x-implementation-status: implemented
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UploadRequest"
+      responses:
+        "200":
+          description: Temporary upload URL created successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UploadResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /api/inquiries:
+    get:
+      tags: [Inquiries]
+      operationId: listMyInquiries
+      summary: List the authenticated customer's pre-order inquiries
+      x-implementation-status: implemented
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Inquiries returned successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Inquiry"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    post:
+      tags: [Inquiries]
+      operationId: createInquiry
+      summary: Start a pre-order inquiry
+      x-implementation-status: implemented
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InquiryCreate"
+      responses:
+        "201":
+          description: Inquiry created successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InquiryResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /api/inquiries/{id}/messages:
+    parameters:
+      - $ref: "#/components/parameters/InquiryId"
+    get:
+      tags: [Inquiries]
+      operationId: listInquiryMessages
+      summary: List messages for a customer-owned inquiry
+      x-implementation-status: implemented
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Inquiry messages returned successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Message"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    post:
+      tags: [Inquiries]
+      operationId: createInquiryMessage
+      summary: Send a message in a customer-owned inquiry
+      x-implementation-status: implemented
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MessageCreate"
+      responses:
+        "201":
+          description: Message sent successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    $ref: "#/components/schemas/Message"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
   /api/auth/magic-link:
     post:
       tags: [Authentication]
       operationId: requestMagicLink
       summary: Send a magic-link login email
-      x-implementation-status: planned
+      x-implementation-status: implemented
       requestBody:
         required: true
         content:
@@ -92,6 +357,9 @@ paths:
                   message:
                     type: string
                     examples: [Authentication email sent]
+                  debugToken:
+                    type: string
+                    description: Development-only token used until email delivery is connected.
         "400":
           $ref: "#/components/responses/BadRequest"
         "429":
@@ -102,7 +370,7 @@ paths:
       tags: [Authentication]
       operationId: verifyMagicLink
       summary: Verify a magic-link token and create a session
-      x-implementation-status: planned
+      x-implementation-status: implemented
       requestBody:
         required: true
         content:
@@ -136,7 +404,7 @@ paths:
       tags: [Authentication]
       operationId: logout
       summary: Destroy the current session
-      x-implementation-status: planned
+      x-implementation-status: implemented
       security:
         - cookieAuth: []
       responses:
@@ -150,7 +418,7 @@ paths:
       tags: [Account]
       operationId: getAccount
       summary: Get the authenticated customer account
-      x-implementation-status: planned
+      x-implementation-status: implemented
       security:
         - cookieAuth: []
       responses:
@@ -166,7 +434,7 @@ paths:
       tags: [Account]
       operationId: updateAccount
       summary: Update the authenticated customer's name or email
-      x-implementation-status: planned
+      x-implementation-status: implemented
       security:
         - cookieAuth: []
       requestBody:
@@ -194,7 +462,7 @@ paths:
       tags: [Commissions]
       operationId: listMyCommissions
       summary: List the authenticated customer's commissions
-      x-implementation-status: planned
+      x-implementation-status: implemented
       security:
         - cookieAuth: []
       parameters:
@@ -222,7 +490,7 @@ paths:
       tags: [Commissions]
       operationId: createCommission
       summary: Submit a commission order or inquiry
-      x-implementation-status: planned
+      x-implementation-status: implemented
       security:
         - cookieAuth: []
       requestBody:
@@ -256,7 +524,7 @@ paths:
       tags: [Commissions]
       operationId: getMyCommission
       summary: Get one commission owned by the authenticated customer
-      x-implementation-status: planned
+      x-implementation-status: implemented
       security:
         - cookieAuth: []
       responses:
@@ -280,7 +548,7 @@ paths:
       tags: [Messages]
       operationId: listCommissionMessages
       summary: List messages for a customer-owned commission
-      x-implementation-status: planned
+      x-implementation-status: implemented
       security:
         - cookieAuth: []
       responses:
@@ -306,7 +574,7 @@ paths:
       tags: [Messages]
       operationId: createCommissionMessage
       summary: Send a message about a customer-owned commission
-      x-implementation-status: planned
+      x-implementation-status: implemented
       security:
         - cookieAuth: []
       requestBody:
@@ -344,7 +612,7 @@ paths:
       tags: [Admin]
       operationId: getAdminSettings
       summary: Get editable site settings
-      x-implementation-status: planned
+      x-implementation-status: implemented
       security:
         - cookieAuth: []
       responses:
@@ -362,7 +630,7 @@ paths:
       tags: [Admin]
       operationId: updateAdminSettings
       summary: Update commission availability and contact settings
-      x-implementation-status: planned
+      x-implementation-status: implemented
       security:
         - cookieAuth: []
       requestBody:
@@ -390,7 +658,7 @@ paths:
       tags: [Admin]
       operationId: createCommissionType
       summary: Create a commission type
-      x-implementation-status: planned
+      x-implementation-status: implemented
       security:
         - cookieAuth: []
       requestBody:
@@ -422,7 +690,7 @@ paths:
       tags: [Admin]
       operationId: updateCommissionType
       summary: Update, activate, hide, or reorder a commission type
-      x-implementation-status: planned
+      x-implementation-status: implemented
       security:
         - cookieAuth: []
       requestBody:
@@ -450,7 +718,7 @@ paths:
       tags: [Admin]
       operationId: deleteCommissionType
       summary: Delete a commission type
-      x-implementation-status: planned
+      x-implementation-status: implemented
       security:
         - cookieAuth: []
       responses:
@@ -468,7 +736,7 @@ paths:
       tags: [Admin]
       operationId: listAdminCommissions
       summary: List commissions across all customers
-      x-implementation-status: planned
+      x-implementation-status: implemented
       security:
         - cookieAuth: []
       parameters:
@@ -502,7 +770,7 @@ paths:
       tags: [Admin]
       operationId: updateAdminCommission
       summary: Update status, quote, invoice, or commission metadata
-      x-implementation-status: planned
+      x-implementation-status: implemented
       security:
         - cookieAuth: []
       requestBody:
@@ -532,7 +800,7 @@ paths:
       tags: [Webhooks]
       operationId: processStripeWebhook
       summary: Process Stripe invoice and payment events
-      x-implementation-status: planned
+      x-implementation-status: implemented
       parameters:
         - name: stripe-signature
           in: header
@@ -575,6 +843,13 @@ components:
         type: string
         format: uuid
     CommissionId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    InquiryId:
       name: id
       in: path
       required: true
@@ -626,6 +901,313 @@ components:
             $ref: "#/components/schemas/Error"
 
   schemas:
+    MediaAsset:
+      type: object
+      required: [id, url, alt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        url:
+          type: string
+          format: uri
+        alt:
+          type: string
+        width:
+          type: integer
+          minimum: 1
+        height:
+          type: integer
+          minimum: 1
+
+    ContentSection:
+      type: object
+      required: [key, title, body, media]
+      properties:
+        key:
+          type: string
+        title:
+          type: string
+        body:
+          type: string
+        media:
+          type: array
+          items:
+            $ref: "#/components/schemas/MediaAsset"
+        href:
+          type: string
+
+    HomeContent:
+      type: object
+      required: [hero, instagram, artisticWorld, commissions]
+      properties:
+        hero:
+          $ref: "#/components/schemas/ContentSection"
+        instagram:
+          $ref: "#/components/schemas/ContentSection"
+        fanMoments:
+          type: array
+          items:
+            $ref: "#/components/schemas/MediaAsset"
+        artisticWorld:
+          $ref: "#/components/schemas/ContentSection"
+        commissions:
+          $ref: "#/components/schemas/ContentSection"
+
+    HomeContentResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: "#/components/schemas/HomeContent"
+
+    PortfolioOverview:
+      type: object
+      required:
+        - introduction
+        - featuredWorks
+        - artisticViewpoint
+        - workflow
+        - traditionalArt
+        - projectPreviews
+      properties:
+        introduction:
+          type: string
+        featuredWorks:
+          type: array
+          items:
+            $ref: "#/components/schemas/MediaAsset"
+        artisticViewpoint:
+          $ref: "#/components/schemas/ContentSection"
+        workflow:
+          type: array
+          items:
+            $ref: "#/components/schemas/ContentSection"
+        traditionalArt:
+          $ref: "#/components/schemas/ContentSection"
+        projectPreviews:
+          type: array
+          items:
+            $ref: "#/components/schemas/Project"
+
+    PortfolioOverviewResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: "#/components/schemas/PortfolioOverview"
+
+    Project:
+      type: object
+      required: [id, slug, title, category, description, media]
+      properties:
+        id:
+          type: string
+          format: uuid
+        slug:
+          type: string
+        title:
+          type: string
+        category:
+          type: string
+          enum: [original_characters, fanart]
+        description:
+          type: string
+        media:
+          type: array
+          items:
+            $ref: "#/components/schemas/MediaAsset"
+
+    ProjectCollectionResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Project"
+
+    ContactContent:
+      type: object
+      required: [introduction, instagramUrl, email, availableHours]
+      properties:
+        introduction:
+          type: string
+        instagramUrl:
+          type: string
+          format: uri
+        instagramImage:
+          $ref: "#/components/schemas/MediaAsset"
+        email:
+          type: string
+          format: email
+        availableHours:
+          type: string
+
+    ContactContentResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: "#/components/schemas/ContactContent"
+
+    ApplicationQuestionOption:
+      type: object
+      required: [id, label, value]
+      properties:
+        id:
+          type: string
+        label:
+          type: string
+        value:
+          type: string
+
+    ApplicationQuestion:
+      type: object
+      required: [id, number, label, inputType, required]
+      properties:
+        id:
+          type: string
+          format: uuid
+        number:
+          type: integer
+          minimum: 1
+        label:
+          type: string
+        helpText:
+          type: string
+        inputType:
+          type: string
+          enum: [radio, rich_text, short_text, date]
+        required:
+          type: boolean
+        options:
+          type: array
+          items:
+            $ref: "#/components/schemas/ApplicationQuestionOption"
+
+    ApplicationFormDefinition:
+      type: object
+      required: [commissionTypeSlug, title, questions]
+      properties:
+        commissionTypeSlug:
+          type: string
+        title:
+          type: string
+        questions:
+          type: array
+          items:
+            $ref: "#/components/schemas/ApplicationQuestion"
+
+    ApplicationFormDefinitionResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: "#/components/schemas/ApplicationFormDefinition"
+
+    ApplicationAnswer:
+      type: object
+      required: [questionId]
+      properties:
+        questionId:
+          type: string
+          format: uuid
+        selectedValue:
+          type: string
+        richTextHtml:
+          type: string
+        textValue:
+          type: string
+        assetIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+
+    CommissionApplicationCreate:
+      type: object
+      required: [commissionTypeSlug, answers]
+      properties:
+        commissionTypeSlug:
+          type: string
+        answers:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/ApplicationAnswer"
+
+    UploadRequest:
+      type: object
+      required: [fileName, contentType, fileSize]
+      properties:
+        fileName:
+          type: string
+        contentType:
+          type: string
+          pattern: "^image/"
+        fileSize:
+          type: integer
+          minimum: 1
+          maximum: 10485760
+
+    UploadResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: object
+          required: [assetId, uploadUrl, expiresAt]
+          properties:
+            assetId:
+              type: string
+              format: uuid
+            uploadUrl:
+              type: string
+              format: uri
+            expiresAt:
+              type: string
+              format: date-time
+
+    Inquiry:
+      type: object
+      required: [id, customerId, status, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        customerId:
+          type: string
+          format: uuid
+        subject:
+          type: string
+        status:
+          type: string
+          enum: [open, answered, closed]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    InquiryCreate:
+      type: object
+      properties:
+        subject:
+          type: string
+          maxLength: 150
+        firstMessage:
+          type: string
+          maxLength: 5000
+
+    InquiryResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: "#/components/schemas/Inquiry"
+
     Error:
       type: object
       required: [error]
@@ -979,14 +1561,21 @@ components:
 
     Message:
       type: object
-      required: [id, commissionId, senderId, senderRole, body, createdAt]
+      required: [id, senderId, senderRole, body, createdAt]
       properties:
         id:
           type: string
           format: uuid
         commissionId:
-          type: string
-          format: uuid
+          oneOf:
+            - type: string
+              format: uuid
+            - type: "null"
+        inquiryId:
+          oneOf:
+            - type: string
+              format: uuid
+            - type: "null"
         senderId:
           type: string
           format: uuid
@@ -1005,6 +1594,15 @@ components:
         createdAt:
           type: string
           format: date-time
+
+    MessageCreate:
+      type: object
+      required: [body]
+      properties:
+        body:
+          type: string
+          minLength: 1
+          maxLength: 5000
 
     SiteSettings:
       type: object
